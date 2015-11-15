@@ -1,0 +1,147 @@
+#include <iostream>
+#include <vector>
+#include <cstdio>
+#include <set>
+#define UNVISITED -1
+using namespace std;
+
+long long int n;
+
+vector < vector<int> > graph ;
+vector <bool> isInGraph ;
+vector<int> dfs_num;
+vector<int> dfs_min;
+vector<int> dfs_parent ;
+vector<bool> isArctPoint ;
+vector < pair<int,int> > edges ;
+set <int> d;
+
+int root , rootChildCount = 0 ,counter = 0;
+int color = 1;
+
+long long int flood_fill(int u){
+    dfs_num[u]= 1;
+    long long int sum=0;
+    for(int i=0 ; i<(int)graph[u].size() ; i++){
+        int v = graph[u][i];
+        if(dfs_num[v] == UNVISITED && isInGraph[v]){
+                sum += flood_fill(v);
+        }
+        if(!isInGraph[v])
+                d.insert(v);
+    }
+    return 1+sum ;
+}
+pair<long long int,long long int> connect_components(){
+    long long int ccNum = 0 ;
+    long long int combinations = 1 ;
+    fill(dfs_num.begin(),dfs_num.end(),UNVISITED);
+    for(int i=1 ; i<=n ; i++){
+        if(isInGraph[i] && dfs_num[i] == UNVISITED){
+            long long int x = flood_fill(i) ;
+            if(d.size() == 1){
+                ccNum++ ;
+                combinations *= x;
+            }
+            d.clear();
+        }
+    }
+    return make_pair(ccNum,combinations);
+}
+
+void arctPoint(int u){
+    dfs_min[u] = dfs_num[u] = counter++ ;
+    for(int i=0 ; i<(int) graph[u].size() ; i++){
+        int v = graph[u][i] ;
+        if(dfs_num[v] == UNVISITED){
+            dfs_parent[v] = u ;
+            if(u == root)
+                rootChildCount++;
+            arctPoint(v) ;
+            if(dfs_min[v] >= dfs_num[u])
+                isArctPoint[u]=true ;
+            dfs_min[u] = min(dfs_min[u],dfs_min[v]);
+        }else if(dfs_parent[u] != v)
+            dfs_min[u] = min(dfs_min[u],dfs_num[v]);
+    }
+}
+
+void init_dfs(){
+    dfs_min.clear();
+    dfs_num.clear();
+    dfs_parent.clear();
+    isArctPoint.clear();
+    dfs_min.resize(n+1);
+    dfs_num.resize(n+1);
+    dfs_parent.resize(n+1);
+    isArctPoint.resize(n+1);
+    fill(dfs_num.begin(),dfs_num.end(),UNVISITED);
+    for(int i=1 ; i<=n ; i++){
+        if(dfs_num[i] == UNVISITED){
+            root = i;
+            rootChildCount = 0;
+            arctPoint(i);
+            isArctPoint[i] = rootChildCount > 1 ;
+        }
+    }
+}
+bool print = false ;
+int main()
+{
+    freopen("input.txt","r",stdin);
+
+    scanf("%d\n" , &n);
+
+    int tc = 1 ;
+
+    while(n != 0){
+
+        graph.clear();
+
+        isInGraph.clear();
+
+        edges.clear();
+
+        int maxN = 0 ;
+
+        for(int i=0 ; i<n ; i++){
+            int x,y ; cin >> x >> y ;
+            edges.push_back(make_pair(x,y));
+            maxN = max(maxN,max(x,y));
+        }
+
+        n = maxN ;
+
+        graph.resize(maxN+1);
+
+        for(int i=0 ; i<(int)edges.size() ; i++){
+            pair<int,int> e = edges[i];
+
+            int u=e.first,v=e.second ;
+            graph[u].push_back(v);
+            graph[v].push_back(u);
+        }
+        init_dfs();
+
+        isInGraph.resize(n+1);
+
+        fill(isInGraph.begin(),isInGraph.end(),true);
+
+        pair<long long int,long long int> ans;
+
+        for(int i=1 ; i<=n ; i++)
+            if(isArctPoint[i])
+                isInGraph[i] = false ;
+
+
+
+        ans = connect_components();
+        if(ans.first == 0)
+            ans.first = 2, ans.second = n*(n-1)/2;
+        printf("Case %d: %lld %lld\n" , tc++ , ans.first , ans.second);
+        print = true ;
+        scanf("%d\n" , &n);
+
+    }
+    return 0;
+}
